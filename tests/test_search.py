@@ -6,6 +6,7 @@ def test_search_files_no_matches(mocker):
     # Create mock listboxes
     left_listbox = tk.Listbox()
     right_listbox = tk.Listbox()
+    result_listbox = tk.Listbox()
 
     # Add test data
     left_listbox.insert(tk.END, "nonexistent_file.txt")
@@ -14,20 +15,18 @@ def test_search_files_no_matches(mocker):
     # Mock os.walk to return empty results
     mocker.patch("os.walk", return_value=iter([]))
 
-    # Mock the messagebox.showinfo function
-    mock_messagebox = mocker.patch("tkinter.messagebox.showinfo")
-
     # Run search_files
-    search_files(left_listbox, right_listbox)
+    search_files(left_listbox, right_listbox, result_listbox)
 
-    # Assert that the messagebox was called with "No matches found."
-    mock_messagebox.assert_called_once_with("Search Results", "No matches found.")
+    # Assert that the result_listbox contains "No matches found."
+    assert result_listbox.get(0) == "No matches found."
 
 
 def test_search_files_with_matches(mocker):
     # Create mock listboxes
     left_listbox = tk.Listbox()
     right_listbox = tk.Listbox()
+    result_listbox = tk.Listbox()
 
     # Add test data
     left_listbox.insert(tk.END, "example.txt")
@@ -36,15 +35,11 @@ def test_search_files_with_matches(mocker):
     # Mock os.walk to return matching results
     mocker.patch("os.walk", return_value=iter([("/some/folder", [], ["example.txt"])]))
 
-    # Mock the messagebox.showinfo function
-    mock_messagebox = mocker.patch("tkinter.messagebox.showinfo")
-
     # Run search_files
-    search_files(left_listbox, right_listbox)
+    search_files(left_listbox, right_listbox, result_listbox)
 
     # Normalize the expected path for comparison
     expected_path = os.path.normpath("/some/folder/example.txt")
-    expected_message = f"Found the following matches:\n{expected_path}"
 
-    # Assert that the messagebox was called with the correct match message
-    mock_messagebox.assert_called_once_with("Search Results", expected_message)
+    # Assert that the result_listbox contains the correct match
+    assert result_listbox.get(0) == expected_path
