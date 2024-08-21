@@ -1,9 +1,7 @@
 import os
-import fnmatch
 import tkinter as tk
-from tkinter import messagebox
 
-def search_files(left_listbox, right_listbox):
+def search_files(left_listbox, right_listbox, result_listbox):
     results = []
     left_items = left_listbox.get(0, tk.END)
     right_folders = right_listbox.get(0, tk.END)
@@ -17,7 +15,8 @@ def search_files(left_listbox, right_listbox):
                     results.append(full_path)
 
     if results:
-        result_message = "Found the following matches:\n" + "\n".join(results)
-        messagebox.showinfo("Search Results", result_message)
+        for result in results:
+            # Add the result to the listbox
+            result_listbox.insert(tk.END, result)
     else:
-        messagebox.showinfo("Search Results", "No matches found.")
+        result_listbox.insert(tk.END, "No matches found.")
