@@ -28,7 +28,11 @@ class FolderDrop(TkinterDnD.Tk):
 
         # Load GUI settings from config file
         self.gui_config = self.load_gui_config()
-        self.title("Folder and File Search GUI")
+        self.title("Fold-A-Saurus")
+
+        # Apply dark mode if enabled
+        if self.gui_config.get('dark_mode', False):
+            self.apply_dark_mode()
 
 
     def set_window_position(self) -> None:
@@ -46,7 +50,7 @@ class FolderDrop(TkinterDnD.Tk):
 
 
     def setup_top_frame(self) -> None:
-        """Sets up the top frame with buttons, e. g. search and delete."""
+        """Sets up the top frame with buttons, e.g., search, delete, and dark mode toggle."""
         # Create the top frame for buttons
         self.top_frame: tk.Frame = tk.Frame(self)
         self.top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
@@ -58,6 +62,13 @@ class FolderDrop(TkinterDnD.Tk):
         # Delete button
         self.delete_button: tk.Button = tk.Button(self.top_frame, text="Delete", command=self.delete_selected_items)
         self.delete_button.pack(side=tk.LEFT, padx=10)
+
+        # Dark Mode Toggle button
+        dark_mode_text = "Switch to Light Mode" if self.gui_config.get('dark_mode', False) else "Switch to Dark Mode"
+        self.dark_mode_button: tk.Button = tk.Button(self.top_frame, text=dark_mode_text, command=self.toggle_dark_mode)
+        self.dark_mode_button.pack(side=tk.LEFT, padx=10)
+
+
 
 
     def setup_columns(self) -> None:
@@ -116,6 +127,48 @@ class FolderDrop(TkinterDnD.Tk):
 
         self.right_listbox.drop_target_register(DND_FILES)
         self.right_listbox.dnd_bind('<<Drop>>', lambda event: drop_right(event, self.right_listbox))
+
+
+    def apply_dark_mode(self) -> None:
+        """Applies dark mode styling to the GUI."""
+        dark_bg = '#2E2E2E'
+        dark_fg = '#FFFFFF'
+        widget_bg = '#3E3E3E'
+        widget_fg = '#FFFFFF'
+        
+        self.configure(bg=dark_bg)
+        self.top_frame.configure(bg=dark_bg)
+        self.search_button.configure(bg=widget_bg, fg=widget_fg)
+        self.delete_button.configure(bg=widget_bg, fg=widget_fg)
+        
+        self.left_frame.configure(bg=dark_bg)
+        self.middle_frame.configure(bg=dark_bg)
+        self.right_frame.configure(bg=dark_bg)
+        
+        self.left_listbox.configure(bg=widget_bg, fg=widget_fg)
+        self.right_listbox.configure(bg=widget_bg, fg=widget_fg)
+        self.result_listbox.configure(bg=widget_bg, fg=widget_fg)
+
+
+    def toggle_dark_mode(self) -> None:
+        """Toggles dark mode on or off."""
+        self.gui_config['dark_mode'] = not self.gui_config.get('dark_mode', False)
+        self.save_gui_config()
+
+        if self.gui_config['dark_mode']:
+            self.apply_dark_mode()
+            self.dark_mode_button.config(text="Switch to Light Mode")
+        else:
+            self.reset_to_light_mode()
+            self.dark_mode_button.config(text="Switch to Dark Mode")
+
+
+
+    def reset_to_light_mode(self) -> None:
+        """Resets the GUI to light mode."""
+        # Implement light mode styling similar to apply_dark_mode
+
+
 
     def search_files(self) -> None:
         self.result_listbox.delete(0, tk.END)  # Clear previous results
@@ -206,5 +259,6 @@ class FolderDrop(TkinterDnD.Tk):
                 return json.load(f)
         return {
             'window_size': {'width': 800, 'height': 400, 'x': 100, 'y': 100},
-            'column_sizes': {'left': 200, 'middle': 200, 'right': 200}
+            'column_sizes': {'left': 200, 'middle': 200, 'right': 200},
+            'dark_mode': False  # Add dark mode setting
         }
