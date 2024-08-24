@@ -13,25 +13,40 @@ CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'config', 'gui_confi
 class FolderDrop(TkinterDnD.Tk):
     def __init__(self) -> None:
         super().__init__()
+        self.setup_environment()
+        self.set_window_position()        
+        self.set_gui_parameters()
+        self.setup_top_frame()
+        self.setup_columns()
+        self.set_bindings()
+        self.setup_drag_and_drop()
 
+
+    def setup_environment(self) -> None:
         # Dictionary to store full paths for items in the left listbox
         self.left_items_paths: Dict[str, str] = {}
 
         # Load GUI settings from config file
         self.gui_config = self.load_gui_config()
+        self.title("Folder and File Search GUI")
 
-        # Set window size and position
+
+    def set_window_position(self) -> None:
+        """Sets the window position based on the loaded configuration."""
         window_width = self.gui_config['window_size'].get('width', 800)
         window_height = self.gui_config['window_size'].get('height', 400)
         window_x = self.gui_config['window_size'].get('x', 100)
         window_y = self.gui_config['window_size'].get('y', 100)
         self.geometry(f"{window_width}x{window_height}+{window_x}+{window_y}")
 
-        self.title("Folder and File Search GUI")
 
+    def set_gui_parameters(self) -> None:
         # Load column sizes from config file
         self.column_sizes = self.gui_config.get('column_sizes', {'left': 200, 'middle': 200, 'right': 200})
 
+
+    def setup_top_frame(self) -> None:
+        """Sets up the top frame with buttons, e. g. search and delete."""
         # Create the top frame for buttons
         self.top_frame: tk.Frame = tk.Frame(self)
         self.top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
@@ -44,6 +59,8 @@ class FolderDrop(TkinterDnD.Tk):
         self.delete_button: tk.Button = tk.Button(self.top_frame, text="Delete", command=self.delete_selected_items)
         self.delete_button.pack(side=tk.LEFT, padx=10)
 
+
+    def setup_columns(self) -> None:
         # Create a paned window for resizable columns
         self.paned_window: tk.PanedWindow = tk.PanedWindow(self, orient=tk.HORIZONTAL)
         self.paned_window.pack(fill=tk.BOTH, expand=True)
@@ -75,14 +92,14 @@ class FolderDrop(TkinterDnD.Tk):
         self.result_listbox.pack(fill=tk.BOTH, expand=True)
         self.result_listbox.bind('<Double-Button-1>', self.open_selected_file_from_result)
 
+
+    def set_bindings(self) -> None:
         # Bind resizing event for window
         self.bind("<Configure>", self.on_window_resize)
 
         # Bind resizing event for columns
         self.paned_window.bind("<B1-Motion>", self.on_resize)
 
-        # Initialize drag-and-drop functionality
-        self.setup_drag_and_drop()
 
     def apply_column_sizes(self) -> None:
         """Applies the column sizes based on the loaded configuration."""
