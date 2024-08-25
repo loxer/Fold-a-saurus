@@ -8,18 +8,21 @@ Fold-a-saurus/
 │   ├── main.py
 │   ├── gui/
 │   │   ├── __init__.py
-│   │   ├── app.py
+│   │   ├── app.py            # Core GUI setup (window, panes, etc.)
+│   │   ├── theme.py          # Theme and configuration handling
+│   │   ├── dragdrop.py       # Drag-and-drop logic and bindings
 │   │   ├── search.py
-│   │   ├── dragdrop.py
 │   │   └── utils.py
 │   ├── configs/
-│   │   ├── gui.json                # Your configuration file for GUI settings
-│   │   └── defaults/
-│   │       └── default_gui.json    # Default configuration file for GUI settings
-│   ├── database/                   # Placeholder for any database-related files
+│   │   ├── profile
+│   │   ├── defaults/
+│   │   │   └── default_gui.json
+│   │   └── profile1/
+│   │       └── gui.json
+│   ├── database/
 │   └── assets/
 │       └── icons/
-│           └── delete_icon.png     # Placeholder for any icons you might use
+│           └── delete_icon.png
 ├── tests/
 │   └── # Placeholder for now
 ├── LICENSE

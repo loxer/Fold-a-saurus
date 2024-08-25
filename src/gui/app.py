@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinterdnd2 import TkinterDnD, DND_FILES
 from gui.search import search_files
 from gui.dragdrop import drop_left, drop_right
+from gui.theme import ThemeManager
 import os
 import subprocess
 from typing import Dict, List, Optional
@@ -31,6 +32,9 @@ class FolderDrop(TkinterDnD.Tk):
         # Load GUI settings from config file
         self.gui_config = self.load_gui_config()
         self.title("Fold-A-Saurus")
+
+        # Initialize the theme manager
+        self.theme_manager = ThemeManager()
 
 
     def set_window_position(self) -> None:
@@ -64,7 +68,11 @@ class FolderDrop(TkinterDnD.Tk):
         # Dark Mode Toggle button
         current_theme = self.gui_config['theme']['mode']
         button_text = "Switch to Light Mode" if current_theme == 'dark' else "Switch to Dark Mode"
-        self.dark_mode_button: tk.Button = tk.Button(self.top_frame, text=button_text, command=self.toggle_dark_mode)
+        self.dark_mode_button: tk.Button = tk.Button(
+            self.top_frame, 
+            text=button_text, 
+            command=lambda: self.theme_manager.toggle_dark_mode(self)
+        )
         self.dark_mode_button.pack(side=tk.LEFT, padx=10)
 
 
@@ -101,9 +109,9 @@ class FolderDrop(TkinterDnD.Tk):
         self.result_listbox.bind('<Double-Button-1>', self.open_selected_file_from_result)
 
 
-    def set_theme(self) -> None:
+    def set_theme(self):
         current_theme = self.gui_config['theme']['mode']
-        self.apply_theme(current_theme)
+        self.theme_manager.apply_theme(self, current_theme)
 
 
     def set_bindings(self) -> None:
@@ -129,64 +137,6 @@ class FolderDrop(TkinterDnD.Tk):
 
         self.right_listbox.drop_target_register(DND_FILES)
         self.right_listbox.dnd_bind('<<Drop>>', lambda event: drop_right(event, self.right_listbox))
-
-
-    def apply_dark_mode(self) -> None:
-        """Applies dark mode styling to the GUI."""
-        dark_bg = '#2E2E2E'
-        dark_fg = '#FFFFFF'
-        widget_bg = '#3E3E3E'
-        widget_fg = '#FFFFFF'
-        
-        self.configure(bg=dark_bg)
-        self.top_frame.configure(bg=dark_bg)
-        self.search_button.configure(bg=widget_bg, fg=widget_fg)
-        self.delete_button.configure(bg=widget_bg, fg=widget_fg)
-        
-        self.left_frame.configure(bg=dark_bg)
-        self.middle_frame.configure(bg=dark_bg)
-        self.right_frame.configure(bg=dark_bg)
-        
-        self.left_listbox.configure(bg=widget_bg, fg=widget_fg)
-        self.right_listbox.configure(bg=widget_bg, fg=widget_fg)
-        self.result_listbox.configure(bg=widget_bg, fg=widget_fg)
-
-
-    def apply_theme(self, theme_name: str) -> None:
-        """Applies the specified theme to the GUI."""
-        theme = self.gui_config['theme'][theme_name]
-        
-        self.configure(bg=theme['bg'])
-        self.top_frame.configure(bg=theme['bg'])
-        self.search_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
-        self.delete_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
-        self.dark_mode_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
-
-        self.left_frame.configure(bg=theme['bg'])
-        self.middle_frame.configure(bg=theme['bg'])
-        self.right_frame.configure(bg=theme['bg'])
-        
-        self.left_listbox.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
-        self.right_listbox.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
-        self.result_listbox.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
-
-
-    def toggle_dark_mode(self) -> None:
-        """Toggles between dark and light modes and saves the current mode."""
-        current_mode = self.gui_config['theme']['mode']
-        new_mode = 'dark' if current_mode == 'light' else 'light'
-        self.gui_config['theme']['mode'] = new_mode
-        self.save_gui_config()
-        self.apply_theme(new_mode)
-        self.dark_mode_button.config(text="Switch to Light Mode" if new_mode == 'dark' else "Switch to Dark Mode")
-
-
-
-
-    def reset_to_light_mode(self) -> None:
-        """Resets the GUI to light mode."""
-        # Implement light mode styling similar to apply_dark_mode
-
 
 
     def search_files(self) -> None:
