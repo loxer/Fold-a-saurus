@@ -1,0 +1,28 @@
+{
+    "window_size": {
+        "width": 800,
+        "height": 400,
+        "x": 100,
+        "y": 100
+    },
+    "column_sizes": {
+        "left": 200,
+        "middle": 200,
+        "right": 200
+    },
+    "theme": {
+        "mode": "light",
+        "light": {
+            "bg": "#FFFFFF",
+            "fg": "#000000",
+            "widget_bg": "#F0F0F0",
+            "widget_fg": "#000000"
+        },
+        "dark": {
+            "bg": "#2E2E2E",
+            "fg": "#FFFFFF",
+            "widget_bg": "#3E3E3E",
+            "widget_fg": "#FFFFFF"
+        }
+    }
+}

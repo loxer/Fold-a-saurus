@@ -12,12 +12,14 @@ Fold-a-saurus/
 │   │   ├── search.py
 │   │   ├── dragdrop.py
 │   │   └── utils.py
-│   ├── config/
-│   │   └── gui_config.json  # Your configuration file for GUI settings
-│   ├── database/            # Placeholder for any database-related files
+│   ├── configs/
+│   │   ├── gui.json                # Your configuration file for GUI settings
+│   │   └── defaults/
+│   │       └── default_gui.json    # Default configuration file for GUI settings
+│   ├── database/                   # Placeholder for any database-related files
 │   └── assets/
 │       └── icons/
-│           └── delete_icon.png  # Placeholder for any icons you might use
+│           └── delete_icon.png     # Placeholder for any icons you might use
 ├── tests/
 │   └── # Placeholder for now
 ├── LICENSE

@@ -7,7 +7,8 @@ import subprocess
 from typing import Dict, List, Optional
 import json
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'config', 'gui_config.json')
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'profile1', 'gui.json')
+DEFAULT_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'defaults', 'default_gui.json')
 
 
 class FolderDrop(TkinterDnD.Tk):
@@ -18,6 +19,7 @@ class FolderDrop(TkinterDnD.Tk):
         self.set_gui_parameters()
         self.setup_top_frame()
         self.setup_columns()
+        self.set_theme()
         self.set_bindings()
         self.setup_drag_and_drop()
 
@@ -29,10 +31,6 @@ class FolderDrop(TkinterDnD.Tk):
         # Load GUI settings from config file
         self.gui_config = self.load_gui_config()
         self.title("Fold-A-Saurus")
-
-        # Apply dark mode if enabled
-        if self.gui_config.get('dark_mode', False):
-            self.apply_dark_mode()
 
 
     def set_window_position(self) -> None:
@@ -64,11 +62,10 @@ class FolderDrop(TkinterDnD.Tk):
         self.delete_button.pack(side=tk.LEFT, padx=10)
 
         # Dark Mode Toggle button
-        dark_mode_text = "Switch to Light Mode" if self.gui_config.get('dark_mode', False) else "Switch to Dark Mode"
-        self.dark_mode_button: tk.Button = tk.Button(self.top_frame, text=dark_mode_text, command=self.toggle_dark_mode)
+        current_theme = self.gui_config['theme']['mode']
+        button_text = "Switch to Light Mode" if current_theme == 'dark' else "Switch to Dark Mode"
+        self.dark_mode_button: tk.Button = tk.Button(self.top_frame, text=button_text, command=self.toggle_dark_mode)
         self.dark_mode_button.pack(side=tk.LEFT, padx=10)
-
-
 
 
     def setup_columns(self) -> None:
@@ -102,6 +99,11 @@ class FolderDrop(TkinterDnD.Tk):
         self.result_listbox: tk.Listbox = tk.Listbox(self.right_frame, selectmode=tk.SINGLE)
         self.result_listbox.pack(fill=tk.BOTH, expand=True)
         self.result_listbox.bind('<Double-Button-1>', self.open_selected_file_from_result)
+
+
+    def set_theme(self) -> None:
+        current_theme = self.gui_config['theme']['mode']
+        self.apply_theme(current_theme)
 
 
     def set_bindings(self) -> None:
@@ -150,17 +152,34 @@ class FolderDrop(TkinterDnD.Tk):
         self.result_listbox.configure(bg=widget_bg, fg=widget_fg)
 
 
-    def toggle_dark_mode(self) -> None:
-        """Toggles dark mode on or off."""
-        self.gui_config['dark_mode'] = not self.gui_config.get('dark_mode', False)
-        self.save_gui_config()
+    def apply_theme(self, theme_name: str) -> None:
+        """Applies the specified theme to the GUI."""
+        theme = self.gui_config['theme'][theme_name]
+        
+        self.configure(bg=theme['bg'])
+        self.top_frame.configure(bg=theme['bg'])
+        self.search_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
+        self.delete_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
+        self.dark_mode_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
 
-        if self.gui_config['dark_mode']:
-            self.apply_dark_mode()
-            self.dark_mode_button.config(text="Switch to Light Mode")
-        else:
-            self.reset_to_light_mode()
-            self.dark_mode_button.config(text="Switch to Dark Mode")
+        self.left_frame.configure(bg=theme['bg'])
+        self.middle_frame.configure(bg=theme['bg'])
+        self.right_frame.configure(bg=theme['bg'])
+        
+        self.left_listbox.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
+        self.right_listbox.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
+        self.result_listbox.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
+
+
+    def toggle_dark_mode(self) -> None:
+        """Toggles between dark and light modes and saves the current mode."""
+        current_mode = self.gui_config['theme']['mode']
+        new_mode = 'dark' if current_mode == 'light' else 'light'
+        self.gui_config['theme']['mode'] = new_mode
+        self.save_gui_config()
+        self.apply_theme(new_mode)
+        self.dark_mode_button.config(text="Switch to Light Mode" if new_mode == 'dark' else "Switch to Dark Mode")
+
 
 
 
@@ -253,12 +272,29 @@ class FolderDrop(TkinterDnD.Tk):
             print(f"Failed to save configuration: {e}")
 
     def load_gui_config(self) -> Dict[str, Dict[str, int]]:
-        """Loads GUI configuration from a config file."""
+        """Loads GUI configuration from a config file and ensures all parameters are present."""
+        
+        # Load default configuration
+        with open(DEFAULT_CONFIG_FILE, 'r') as f:
+            default_config = json.load(f)
+        
+        # Load configuration from file if it exists
         if os.path.exists(CONFIG_FILE):
             with open(CONFIG_FILE, 'r') as f:
-                return json.load(f)
-        return {
-            'window_size': {'width': 800, 'height': 400, 'x': 100, 'y': 100},
-            'column_sizes': {'left': 200, 'middle': 200, 'right': 200},
-            'dark_mode': False  # Add dark mode setting
-        }
+                loaded_config = json.load(f)
+        else:
+            loaded_config = {}
+
+        # Ensure all parameters are present
+        def update_config(default, loaded):
+            for key, value in default.items():
+                if isinstance(value, dict):
+                    loaded[key] = update_config(value, loaded.get(key, {}))
+                else:
+                    loaded[key] = loaded.get(key, value)
+            return loaded
+
+        # Update the loaded configuration with missing parameters
+        final_config = update_config(default_config, loaded_config)
+        
+        return final_config
