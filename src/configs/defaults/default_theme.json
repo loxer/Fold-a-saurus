@@ -1,0 +1,45 @@
+{
+    "theme": "light",
+    "light": {
+        "bg": "#FFFFFF",
+        "fg": "#000000",
+        "widget_bg": "#F0F0F0",
+        "widget_fg": "#000000"
+    },
+    "dark": {
+        "bg": "#2E2E2E",
+        "fg": "#FFFFFF",
+        "widget_bg": "#3E3E3E",
+        "widget_fg": "#FFFFFF"
+    },
+    "blue": {
+        "bg": "#0000FF",
+        "fg": "#FFFFFF",
+        "widget_bg": "#ADD8E6",
+        "widget_fg": "#FFFFFF"
+    },
+    "green": {
+        "bg": "#008000",
+        "fg": "#FFFFFF",
+        "widget_bg": "#98FB98",
+        "widget_fg": "#000000"
+    },
+    "magenta": {
+        "bg": "#FF00FF",
+        "fg": "#FFFFFF",
+        "widget_bg": "#FFC0CB",
+        "widget_fg": "#000000"
+    },
+    "purple": {
+        "bg": "#800080",
+        "fg": "#FFFFFF",
+        "widget_bg": "#D8BFD8",
+        "widget_fg": "#000000"
+    },
+    "red": {
+        "bg": "#FF0000",
+        "fg": "#FFFFFF",
+        "widget_bg": "#FFA07A",
+        "widget_fg": "#000000"
+    }
+}

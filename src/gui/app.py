@@ -54,7 +54,7 @@ class FolderDrop(TkinterDnD.Tk):
 
 
     def setup_top_frame(self) -> None:
-        """Sets up the top frame with buttons, e.g., search, delete, and dark mode toggle."""
+        """Sets up the top frame with buttons, e.g., search, delete, and theme toggle."""
         # Create the top frame for buttons
         self.top_frame: tk.Frame = tk.Frame(self)
         self.top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
@@ -67,15 +67,14 @@ class FolderDrop(TkinterDnD.Tk):
         self.delete_button: tk.Button = tk.Button(self.top_frame, text="Delete", command=self.delete_selected_items)
         self.delete_button.pack(side=tk.LEFT, padx=10)
 
-        # Dark Mode Toggle button
-        current_theme = self.gui_config['theme']['mode']
-        button_text = "Switch to Light Mode" if current_theme == 'dark' else "Switch to Dark Mode"
-        self.dark_mode_button: tk.Button = tk.Button(
+        # Toggle Themes button
+        button_text = self.theme_manager.get_button_text()
+        self.theme_button: tk.Button = tk.Button(
             self.top_frame, 
             text=button_text, 
-            command=lambda: self.theme_manager.toggle_dark_mode(self)
+            command=lambda: self.theme_manager.toggle_themes(self)
         )
-        self.dark_mode_button.pack(side=tk.LEFT, padx=10)
+        self.theme_button.pack(side=tk.LEFT, padx=10)
 
 
     def setup_columns(self) -> None:
@@ -112,8 +111,7 @@ class FolderDrop(TkinterDnD.Tk):
 
 
     def set_theme(self):
-        current_theme = self.gui_config['theme']['mode']
-        self.theme_manager.apply_theme(self, current_theme)
+        self.theme_manager.set_theme(self)
 
 
     def set_bindings(self) -> None:
