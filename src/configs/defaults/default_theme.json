@@ -15,7 +15,7 @@
     "blue": {
         "bg": "#0000FF",
         "fg": "#FFFFFF",
-        "widget_bg": "#ADD8E6",
+        "widget_bg": "#9898FB",
         "widget_fg": "#FFFFFF"
     },
     "green": {
@@ -40,6 +40,12 @@
         "bg": "#FF0000",
         "fg": "#FFFFFF",
         "widget_bg": "#FFA07A",
+        "widget_fg": "#000000"
+    },
+    "yellow": {
+        "bg": "#FFFF00",
+        "fg": "#000000",
+        "widget_bg": "#FFFACD",
         "widget_fg": "#000000"
     }
 }
