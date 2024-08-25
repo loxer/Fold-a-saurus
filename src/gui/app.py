@@ -3,10 +3,12 @@ from tkinterdnd2 import TkinterDnD, DND_FILES
 from gui.search import search_files
 from gui.dragdrop import drop_left, drop_right
 from gui.theme import ThemeManager
+from gui.utils import save_config, load_config
+from typing import Dict, List, Optional
 import os
 import subprocess
-from typing import Dict, List, Optional
 import json
+
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'profile1', 'gui.json')
 DEFAULT_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'defaults', 'default_gui.json')
@@ -30,7 +32,7 @@ class FolderDrop(TkinterDnD.Tk):
         self.left_items_paths: Dict[str, str] = {}
 
         # Load GUI settings from config file
-        self.gui_config = self.load_gui_config()
+        self.gui_config: dict = load_config(DEFAULT_CONFIG_FILE, CONFIG_FILE)
         self.title("Fold-A-Saurus")
 
         # Initialize the theme manager
@@ -196,7 +198,7 @@ class FolderDrop(TkinterDnD.Tk):
         self.gui_config['column_sizes']['left'] = self.left_frame.winfo_width()
         self.gui_config['column_sizes']['middle'] = self.middle_frame.winfo_width()
         self.gui_config['column_sizes']['right'] = self.right_frame.winfo_width()
-        self.save_gui_config()
+        self.gui_config = save_config(self.gui_config, CONFIG_FILE)
 
     def on_window_resize(self, event: tk.Event) -> None:
         """Handles the resizing and movement of the window and saves the new size and position to the config file."""
@@ -205,46 +207,4 @@ class FolderDrop(TkinterDnD.Tk):
             self.gui_config['window_size']['height'] = self.winfo_height()
             self.gui_config['window_size']['x'] = self.winfo_x()
             self.gui_config['window_size']['y'] = self.winfo_y()
-            self.save_gui_config()
-
-    def save_gui_config(self) -> None:
-        """Saves the current GUI configuration to a config file."""
-        # Ensure the directory exists
-        config_dir = os.path.dirname(CONFIG_FILE)
-        if not os.path.exists(config_dir):
-            os.makedirs(config_dir)
-
-        try:
-            with open(CONFIG_FILE, 'w') as f:
-                json.dump(self.gui_config, f, indent=4)
-                f.flush()  # Ensure data is written to disk
-        except IOError as e:
-            print(f"Failed to save configuration: {e}")
-
-    def load_gui_config(self) -> Dict[str, Dict[str, int]]:
-        """Loads GUI configuration from a config file and ensures all parameters are present."""
-        
-        # Load default configuration
-        with open(DEFAULT_CONFIG_FILE, 'r') as f:
-            default_config = json.load(f)
-        
-        # Load configuration from file if it exists
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, 'r') as f:
-                loaded_config = json.load(f)
-        else:
-            loaded_config = {}
-
-        # Ensure all parameters are present
-        def update_config(default, loaded):
-            for key, value in default.items():
-                if isinstance(value, dict):
-                    loaded[key] = update_config(value, loaded.get(key, {}))
-                else:
-                    loaded[key] = loaded.get(key, value)
-            return loaded
-
-        # Update the loaded configuration with missing parameters
-        final_config = update_config(default_config, loaded_config)
-        
-        return final_config
+            self.gui_config = save_config(self.gui_config, CONFIG_FILE)

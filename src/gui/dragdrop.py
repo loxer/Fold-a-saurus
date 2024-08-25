@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import Callable, List
 
+
 def drop_left(event: tk.Event, add_to_listbox_callback: Callable[[List[str]], None]) -> None:
     """Handles the drop event for the left listbox, adding files or folders."""
     # Remove the curly braces and split the paths using a more reliable method
@@ -14,6 +15,7 @@ def drop_left(event: tk.Event, add_to_listbox_callback: Callable[[List[str]], No
     
     # Use the callback to add the items to the listbox
     add_to_listbox_callback(valid_paths)
+
 
 def drop_right(event: tk.Event, listbox: tk.Listbox) -> None:
     """Handles the drop event for the right listbox, ensuring no duplicate or subfolders."""
