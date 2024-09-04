@@ -18,15 +18,15 @@ class ThemeManager:
         self.apply_theme(app, theme)
 
 
-    def apply_theme(self, app, theme_name) -> None:
-        """Applies the specified theme to the GUI."""
+    def apply_theme(self, app, theme_name: str) -> None:
+        """Applies the specified theme to the GUI and saves it as the current theme."""
+        # Apply the theme
         theme = self.theme_config[theme_name]
 
         app.configure(bg=theme['bg'])
         app.top_frame.configure(bg=theme['bg'])
         app.search_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
         app.delete_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
-        app.theme_button.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
 
         app.left_frame.configure(bg=theme['bg'])
         app.middle_frame.configure(bg=theme['bg'])
@@ -36,42 +36,11 @@ class ThemeManager:
         app.right_listbox.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
         app.result_listbox.configure(bg=theme['widget_bg'], fg=theme['widget_fg'])
 
-
-    def toggle_themes(self, app) -> None:
-        """Toggles between themes and saves the current one."""
-        # Get the next theme using the get_next_theme method
-        new_theme = self.get_next_theme()
-        # Update the theme configuration
-        self.theme_config['theme'] = new_theme
-        self.theme_config = save_config(self.theme_config, CONFIG_FILE)
-        # Apply the new theme to the app
-        self.apply_theme(app, new_theme)
-        # Update the button text based on the new theme
-        app.theme_button.config(
-            text=self.get_button_text()
-        )
-
-
-    def get_next_theme(self) -> str:
-        current_theme: str = self.theme_config["theme"]
-        theme_keys: list[str] = [key for key in self.theme_config.keys() if key != "theme"]
-
-        try:
-            # Find the index of the current theme in the list of themes
-            current_index: int = theme_keys.index(current_theme)
-            # Get the next theme, or wrap around to the first one if at the end
-            next_theme: str = theme_keys[(current_index + 1) % len(theme_keys)]
-        except ValueError:
-            # If the current theme is not in the theme_keys list, return the first theme
-            next_theme = theme_keys[0]
-        return next_theme
+        # Save the applied theme as the current theme
+        self.theme_config['theme'] = theme_name
+        save_config(self.theme_config, CONFIG_FILE)
 
 
     def get_available_themes(self) -> List[str]:
         """Returns a list of available theme names from the configuration."""
         return [theme for theme in self.theme_config.keys() if theme != 'theme']
-
-
-    def get_button_text(self) -> str:
-        """Returns the appropriate button text based on the new theme."""
-        return f"Switch to {self.get_next_theme().capitalize()} Mode"

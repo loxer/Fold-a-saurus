@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinterdnd2 import TkinterDnD, DND_FILES
-from gui.search import search_files
+from gui.search import search_files, perform_fast_search
 from gui.dragdrop import drop_left, drop_right
 from gui.theme import ThemeManager
 from gui.utils import save_config, load_config
@@ -108,20 +108,34 @@ class FolderDrop(TkinterDnD.Tk):
         
         # Load themes from the theme configuration
         themes = self.theme_manager.get_available_themes()
+        current_theme = self.theme_manager.theme_config['theme']  # Get the current theme
+
         for theme_name in themes:
+            # Mark the current theme with a checkmark
             themes_menu.add_command(
                 label=theme_name,
-                command=lambda theme=theme_name: self.theme_manager.apply_theme(self, theme)
+                command=lambda theme=theme_name: self.apply_selected_theme(theme),
+                background="gray" if theme_name == current_theme else ""
             )
-        
+
         menu_bar.add_cascade(label="Themes", menu=themes_menu)
 
         # Add the menu bar to the main window
         self.config(menu=menu_bar)
 
 
+    def apply_selected_theme(self, theme_name: str) -> None:
+        """Applies the selected theme and updates the menu to reflect the current theme."""
+        self.theme_manager.apply_theme(self, theme_name)
+        self.setup_menu_bar()  # Refresh the menu to highlight the current theme
+
 
     def setup_buttons(self) -> None:
+        # Create the search entry (search bar)
+        self.search_entry: tk.Entry = tk.Entry(self.top_frame, width=30)
+        self.search_entry.pack(side=tk.LEFT, padx=(0, 10))  # Add padding to separate from the button
+        self.search_entry.bind('<KeyRelease>', self.on_search_entry_change)  # Bind input changes
+
         # Search button
         self.search_button: tk.Button = tk.Button(self.top_frame, text="Search", command=self.search_files)
         self.search_button.pack(side=tk.LEFT)
@@ -129,15 +143,6 @@ class FolderDrop(TkinterDnD.Tk):
         # Delete button
         self.delete_button: tk.Button = tk.Button(self.top_frame, text="Delete", command=self.delete_selected_items)
         self.delete_button.pack(side=tk.LEFT, padx=10)
-
-        # Toggle Themes button
-        button_text = self.theme_manager.get_button_text()
-        self.theme_button: tk.Button = tk.Button(
-            self.top_frame, 
-            text=button_text, 
-            command=lambda: self.theme_manager.toggle_themes(self)
-        )
-        self.theme_button.pack(side=tk.LEFT, padx=10)
 
 
     def setup_columns(self) -> None:
@@ -268,6 +273,14 @@ class FolderDrop(TkinterDnD.Tk):
         self.gui_config['column_sizes']['right'] = self.right_frame.winfo_width()
         self.gui_config = save_config(self.gui_config, CONFIG_FILE)
 
+    def on_search_entry_change(self, event: Optional[tk.Event] = None) -> None:
+        """Handles input changes in the search entry when fast search is enabled."""
+        if self.fast_search:
+            search_query = self.search_entry.get().strip()  # Get the input from the search bar
+            if search_query:  # Proceed only if there is input
+                self.result_listbox.delete(0, tk.END)  # Clear previous results
+                perform_fast_search(search_query, self.right_listbox, self.result_listbox)
+
     def on_window_resize(self, event: tk.Event) -> None:
         """Handles the resizing and movement of the window and saves the new size and position to the config file."""
         if event.widget == self:
@@ -285,3 +298,5 @@ class FolderDrop(TkinterDnD.Tk):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         return {'width': screen_width, 'height': screen_height}
+    
+
