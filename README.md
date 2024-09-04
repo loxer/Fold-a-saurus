@@ -28,3 +28,7 @@ Fold-a-saurus/
 ├── LICENSE
 ├── pytest.ini
 └── README.md
+
+
+# Requirements
+pip install moviepy
