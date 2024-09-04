@@ -10,7 +10,7 @@ import subprocess
 import json
 
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'profile1', 'gui.json')
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'user', 'profile1', 'gui.json')
 DEFAULT_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'defaults', 'default_gui.json')
 
 
@@ -18,9 +18,11 @@ class FolderDrop(TkinterDnD.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.setup_environment()
-        self.set_window_position()        
+        self.set_window_position()
         self.set_gui_parameters()
         self.setup_top_frame()
+        self.setup_menu_bar()
+        self.setup_buttons()
         self.setup_columns()
         self.set_theme()
         self.set_bindings()
@@ -28,29 +30,57 @@ class FolderDrop(TkinterDnD.Tk):
 
 
     def setup_environment(self) -> None:
-        # Dictionary to store full paths for items in the left listbox
+        # Initialize variables
         self.left_items_paths: Dict[str, str] = {}
+        self.fast_search = False
 
         # Load GUI settings from config file
         self.gui_config: dict = load_config(DEFAULT_CONFIG_FILE, CONFIG_FILE)
         self.title("Fold-A-Saurus")
+
+        # Prepare lists for the gui
+        self.buttons: List[tk.Button] = []
+        self.frames: List[tk.Frame] = []
+        self.PanedWindow: List[tk.PanedWindow] = []
+        self.left_listbox: List[tk.Listbox] = []
 
         # Initialize the theme manager
         self.theme_manager = ThemeManager()
 
 
     def set_window_position(self) -> None:
-        """Sets the window position based on the loaded configuration."""
+        """Sets the window position based on the loaded configuration and current screen resolution."""
         window_width = self.gui_config['window_size'].get('width', 800)
         window_height = self.gui_config['window_size'].get('height', 400)
         window_x = self.gui_config['window_size'].get('x', 100)
         window_y = self.gui_config['window_size'].get('y', 100)
-        self.geometry(f"{window_width}x{window_height}+{window_x}+{window_y}")
+
+        # Adjust window size and position based on screen resolution difference
+        current_resolution = self.get_currenct_resolution()
+        saved_resolution = self.gui_config.get('monitor_resolution', current_resolution)
+        width_ratio = current_resolution['width'] / saved_resolution['width']
+        height_ratio = current_resolution['height'] / saved_resolution['height']
+
+        adjusted_width = int(window_width * width_ratio)
+        adjusted_height = int(window_height * height_ratio)
+        adjusted_x = int(window_x * width_ratio)
+        adjusted_y = int(window_y * height_ratio)
+
+        self.geometry(f"{adjusted_width}x{adjusted_height}+{adjusted_x}+{adjusted_y}")
 
 
     def set_gui_parameters(self) -> None:
-        # Load column sizes from config file
-        self.column_sizes = self.gui_config.get('column_sizes', {'left': 200, 'middle': 200, 'right': 200})
+        """Sets the GUI parameters based on loaded configuration and screen resolution."""        
+        current_resolution = self.get_currenct_resolution()
+        saved_resolution = self.gui_config.get('monitor_resolution', current_resolution)
+        width_ratio = current_resolution['width'] / saved_resolution['width']
+
+        # Adjust column sizes based on screen resolution difference
+        self.column_sizes = {
+            'left': int(self.gui_config['column_sizes'].get('left', 200) * width_ratio),
+            'middle': int(self.gui_config['column_sizes'].get('middle', 200) * width_ratio),
+            'right': int(self.gui_config['column_sizes'].get('right', 200) * width_ratio)
+        }
 
 
     def setup_top_frame(self) -> None:
@@ -59,6 +89,39 @@ class FolderDrop(TkinterDnD.Tk):
         self.top_frame: tk.Frame = tk.Frame(self)
         self.top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=10)
 
+
+    def setup_menu_bar(self) -> None:
+        """Sets up the menu bar with Settings and Themes drop-down menus."""
+        menu_bar = tk.Menu(self)
+
+        # Settings menu
+        settings_menu = tk.Menu(menu_bar, tearoff=0)
+        settings_menu.add_checkbutton(
+            label="Fast Search",
+            command=self.toggle_fast_search,
+            variable=tk.BooleanVar(value=self.fast_search)  # Track the fast search state
+        )
+        menu_bar.add_cascade(label="Settings", menu=settings_menu)
+
+        # Themes menu
+        themes_menu = tk.Menu(menu_bar, tearoff=0)
+        
+        # Load themes from the theme configuration
+        themes = self.theme_manager.get_available_themes()
+        for theme_name in themes:
+            themes_menu.add_command(
+                label=theme_name,
+                command=lambda theme=theme_name: self.theme_manager.apply_theme(self, theme)
+            )
+        
+        menu_bar.add_cascade(label="Themes", menu=themes_menu)
+
+        # Add the menu bar to the main window
+        self.config(menu=menu_bar)
+
+
+
+    def setup_buttons(self) -> None:
         # Search button
         self.search_button: tk.Button = tk.Button(self.top_frame, text="Search", command=self.search_files)
         self.search_button.pack(side=tk.LEFT)
@@ -138,6 +201,12 @@ class FolderDrop(TkinterDnD.Tk):
         self.right_listbox.drop_target_register(DND_FILES)
         self.right_listbox.dnd_bind('<<Drop>>', lambda event: drop_right(event, self.right_listbox))
 
+    
+    def toggle_fast_search(self) -> None:
+        """Toggles the fast search functionality on and off."""
+        self.fast_search = not self.fast_search
+        print(f"Fast Search is now {'enabled' if self.fast_search else 'disabled'}")
+
 
     def search_files(self) -> None:
         self.result_listbox.delete(0, tk.END)  # Clear previous results
@@ -193,6 +262,7 @@ class FolderDrop(TkinterDnD.Tk):
 
     def on_resize(self, event: tk.Event) -> None:
         """Handles the resizing of columns and saves the sizes to the config file."""
+        self.gui_config['monitor_resolution'] = self.get_currenct_resolution()
         self.gui_config['column_sizes']['left'] = self.left_frame.winfo_width()
         self.gui_config['column_sizes']['middle'] = self.middle_frame.winfo_width()
         self.gui_config['column_sizes']['right'] = self.right_frame.winfo_width()
@@ -201,8 +271,17 @@ class FolderDrop(TkinterDnD.Tk):
     def on_window_resize(self, event: tk.Event) -> None:
         """Handles the resizing and movement of the window and saves the new size and position to the config file."""
         if event.widget == self:
+            self.gui_config['monitor_resolution'] = self.get_currenct_resolution()
+
+            # Save window size and position to the configuration
             self.gui_config['window_size']['width'] = self.winfo_width()
             self.gui_config['window_size']['height'] = self.winfo_height()
             self.gui_config['window_size']['x'] = self.winfo_x()
             self.gui_config['window_size']['y'] = self.winfo_y()
             self.gui_config = save_config(self.gui_config, CONFIG_FILE)
+
+    def get_currenct_resolution(self) -> Dict[str, int]:
+        """Returns the current screen resolution."""
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        return {'width': screen_width, 'height': screen_height}

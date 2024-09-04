@@ -1,9 +1,9 @@
 import os
 import json
-from typing import Dict
+from typing import Dict, List
 from gui.utils import save_config, load_config
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'profile1', 'theme.json')
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'user', 'profile1', 'theme.json')
 DEFAULT_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'defaults', 'default_theme.json')
 
 
@@ -65,6 +65,11 @@ class ThemeManager:
             # If the current theme is not in the theme_keys list, return the first theme
             next_theme = theme_keys[0]
         return next_theme
+
+
+    def get_available_themes(self) -> List[str]:
+        """Returns a list of available theme names from the configuration."""
+        return [theme for theme in self.theme_config.keys() if theme != 'theme']
 
 
     def get_button_text(self) -> str:

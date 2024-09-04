@@ -25,13 +25,20 @@ def load_config(default_file: str, config_file: str) -> Dict[str, Dict[str, int]
     # Load default configuration
     with open(default_file, 'r') as f:
         default_config = json.load(f)
-    
-    # Load configuration from file if it exists
+
+    # Try to load configuration from the file if it exists
+    loaded_config = {}
     if os.path.exists(config_file):
-        with open(config_file, 'r') as f:
-            loaded_config = json.load(f)
-    else:
-        loaded_config = {}
+        try:
+            with open(config_file, 'r') as f:
+                # Check if the file is not empty before loading
+                content = f.read().strip()
+                if content:
+                    loaded_config = json.loads(content)
+                else:
+                    print("Configuration file is empty, loading defaults.")
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Error loading configuration file: {e}. Using defaults.")
 
     # Ensure all parameters are present
     def update_config(default: Dict, loaded: Dict) -> Dict:
@@ -44,5 +51,5 @@ def load_config(default_file: str, config_file: str) -> Dict[str, Dict[str, int]
 
     # Update the loaded configuration with missing parameters
     final_config = update_config(default_config, loaded_config)
-    
+
     return final_config

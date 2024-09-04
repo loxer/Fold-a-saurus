@@ -9,5 +9,9 @@
         "left": 200,
         "middle": 200,
         "right": 200
+    },
+    "monitor_resolution": {
+        "width": 1920,
+        "height": 1080
     }
 }
