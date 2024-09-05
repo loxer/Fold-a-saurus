@@ -1,17 +1,17 @@
+import multiprocessing
+import os
 import tkinter as tk
 from tkinterdnd2 import TkinterDnD, DND_FILES
-from gui.search import search_files, perform_fast_search
+from gui.search import search_files, perform_fast_search, search_files_multiprocessing, perform_fast_search_multiprocessing
 from gui.dragdrop import drop_left, drop_right
 from gui.theme import ThemeManager
-from gui.utils import save_config, load_config
+from gui.utils import save_config, load_config, save_listbox_states, load_listbox_states
+from gui.paths import CONFIG_LISTBOX_STATE_FILE, CONFIG_GUI_FILE, DEFAULT_CONFIG_GUI_FILE
 from typing import Dict, List, Optional
-import os
 import subprocess
 import json
+import queue
 
-
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'user', 'profile1', 'gui.json')
-DEFAULT_CONFIG_FILE = os.path.join(os.path.dirname(__file__), '..', 'configs', 'defaults', 'default_gui.json')
 
 
 class FolderDrop(TkinterDnD.Tk):
@@ -27,22 +27,75 @@ class FolderDrop(TkinterDnD.Tk):
         self.set_theme()
         self.set_bindings()
         self.setup_drag_and_drop()
+        load_listbox_states(CONFIG_LISTBOX_STATE_FILE, self.left_listbox, self.right_listbox, self.result_listbox)
+
+
+    def start_search(self) -> None:
+        """Starts the search in a separate process."""
+        self.result_listbox.delete(0, tk.END)  # Clear previous results
+
+        left_items = [self.left_listbox.get(i) for i in range(self.left_listbox.size())]
+        right_dirs = [self.right_listbox.get(i) for i in range(self.right_listbox.size())]
+
+        # Start the search in a new process
+        self.search_process = multiprocessing.Process(
+            target=search_files_multiprocessing, args=(left_items, right_dirs, self.result_queue)
+        )
+        self.search_process.start()
+
+        # Start polling for results
+        self.after(100, self.process_search_results)
+
+
+    def process_search_results(self) -> None:
+        """Processes search results from the queue and updates the UI."""
+        try:
+            while not self.result_queue.empty():
+                result = self.result_queue.get_nowait()
+                if result is None:  # None signals the end of the search
+                    if self.search_process.is_alive():
+                        self.search_process.terminate()
+                    return
+                self.result_listbox.insert(tk.END, result)  # Update the listbox with the result
+        except queue.Empty:
+            pass
+        # Continue polling
+        self.after(100, self.process_search_results)
+
+
+    def on_search_entry_change(self, event: Optional[tk.Event] = None) -> None:
+        """Starts a fast search when input changes and Fast Search is enabled."""
+        if self.fast_search:
+            search_query = self.search_entry.get().strip()
+            if search_query:
+                self.result_listbox.delete(0, tk.END)
+                self.search_process = multiprocessing.Process(
+                    target=perform_fast_search_multiprocessing, args=(search_query, [self.right_listbox.get(i) for i in range(self.right_listbox.size())], self.result_queue)
+                )
+                self.search_process.start()
+                self.after(100, self.process_search_results)
+
 
 
     def setup_environment(self) -> None:
         # Initialize variables
         self.left_items_paths: Dict[str, str] = {}
         self.fast_search = False
-
-        # Load GUI settings from config file
-        self.gui_config: dict = load_config(DEFAULT_CONFIG_FILE, CONFIG_FILE)
-        self.title("Fold-A-Saurus")
+        self.result_queue = multiprocessing.Queue()  # Queue to get results from the process
+        self.search_process = None  # To hold the search process
 
         # Prepare lists for the gui
         self.buttons: List[tk.Button] = []
         self.frames: List[tk.Frame] = []
         self.PanedWindow: List[tk.PanedWindow] = []
         self.left_listbox: List[tk.Listbox] = []
+
+        # Load GUI settings from config file
+        self.gui_config: dict = load_config(DEFAULT_CONFIG_GUI_FILE, CONFIG_GUI_FILE)
+        self.title("Fold-A-Saurus")
+
+        # Save the state of the GUI on close
+        self.protocol("WM_DELETE_WINDOW", self.on_close)  # Save state on close
 
         # Initialize the theme manager
         self.theme_manager = ThemeManager()
@@ -137,12 +190,13 @@ class FolderDrop(TkinterDnD.Tk):
         self.search_entry.bind('<KeyRelease>', self.on_search_entry_change)  # Bind input changes
 
         # Search button
-        self.search_button: tk.Button = tk.Button(self.top_frame, text="Search", command=self.search_files)
+        self.search_button: tk.Button = tk.Button(self.top_frame, text="Search", command=self.start_search)  # Updated command
         self.search_button.pack(side=tk.LEFT)
 
         # Delete button
         self.delete_button: tk.Button = tk.Button(self.top_frame, text="Delete", command=self.delete_selected_items)
         self.delete_button.pack(side=tk.LEFT, padx=10)
+
 
 
     def setup_columns(self) -> None:
@@ -175,7 +229,8 @@ class FolderDrop(TkinterDnD.Tk):
         # Listbox for the result column
         self.result_listbox: tk.Listbox = tk.Listbox(self.right_frame, selectmode=tk.SINGLE)
         self.result_listbox.pack(fill=tk.BOTH, expand=True)
-        self.result_listbox.bind('<Double-Button-1>', self.open_selected_file_from_result)
+        self.result_listbox.bind('<Double-Button-1>', self.open_selected_file_from_result)  # Bind the double-click event
+
 
 
     def set_theme(self):
@@ -246,17 +301,26 @@ class FolderDrop(TkinterDnD.Tk):
             self.open_file_explorer(selected_item)
 
     def open_selected_file_from_result(self, event: Optional[tk.Event] = None) -> None:
+        """Handles the double-click event on the result listbox to open the selected file or directory in the file explorer."""
         selection: List[int] = self.result_listbox.curselection()
         if selection:
-            selected_file: str = self.result_listbox.get(selection[0])
-            self.open_file_explorer(selected_file)
+            selected_path: str = self.result_listbox.get(selection[0])
+            self.open_file_explorer(selected_path)
+
 
     def open_file_explorer(self, filepath: str) -> None:
-        if os.path.isdir(filepath) or os.path.isfile(filepath):
-            if os.name == 'nt':  # Windows
-                subprocess.run(['explorer', '/select,', os.path.normpath(filepath)])
-            elif os.name == 'posix':  # Linux
-                subprocess.run(['xdg-open', os.path.dirname(filepath)])
+        """Opens the specified file or directory in the file explorer."""
+        try:
+            if os.path.isdir(filepath):
+                # Open the directory directly
+                subprocess.run(['explorer', os.path.normpath(filepath)], check=False)
+            elif os.path.isfile(filepath):
+                # Open the file in its directory and highlight it
+                subprocess.run(['explorer', '/select,', os.path.normpath(filepath)], check=False)
+        except Exception as e:
+            print(f"Error opening file explorer: {e}")
+
+
 
     def add_to_left_listbox(self, paths: List[str]) -> None:
         """ Adds multiple items to the left listbox, showing only the name but storing the full path. """
@@ -271,15 +335,25 @@ class FolderDrop(TkinterDnD.Tk):
         self.gui_config['column_sizes']['left'] = self.left_frame.winfo_width()
         self.gui_config['column_sizes']['middle'] = self.middle_frame.winfo_width()
         self.gui_config['column_sizes']['right'] = self.right_frame.winfo_width()
-        self.gui_config = save_config(self.gui_config, CONFIG_FILE)
+        self.gui_config = save_config(self.gui_config, CONFIG_GUI_FILE)
 
     def on_search_entry_change(self, event: Optional[tk.Event] = None) -> None:
-        """Handles input changes in the search entry when fast search is enabled."""
-        if self.fast_search:
-            search_query = self.search_entry.get().strip()  # Get the input from the search bar
-            if search_query:  # Proceed only if there is input
-                self.result_listbox.delete(0, tk.END)  # Clear previous results
-                perform_fast_search(search_query, self.right_listbox, self.result_listbox)
+        """Handles input changes in the search entry when fast search is enabled or a manual search is triggered."""
+        search_query = self.search_entry.get().strip()  # Get the input from the search bar
+        if search_query:  # Proceed only if there is input
+            if self.fast_search:
+                # Start fast search using multiprocessing
+                self.result_listbox.delete(0, tk.END)
+                self.search_process = multiprocessing.Process(
+                    target=perform_fast_search_multiprocessing, 
+                    args=(search_query, [self.right_listbox.get(i) for i in range(self.right_listbox.size())], self.result_queue)
+                )
+                self.search_process.start()
+                self.after(100, self.process_search_results)
+            else:
+                # Trigger the standard search
+                self.start_search()
+
 
     def on_window_resize(self, event: tk.Event) -> None:
         """Handles the resizing and movement of the window and saves the new size and position to the config file."""
@@ -291,7 +365,14 @@ class FolderDrop(TkinterDnD.Tk):
             self.gui_config['window_size']['height'] = self.winfo_height()
             self.gui_config['window_size']['x'] = self.winfo_x()
             self.gui_config['window_size']['y'] = self.winfo_y()
-            self.gui_config = save_config(self.gui_config, CONFIG_FILE)
+            self.gui_config = save_config(self.gui_config, CONFIG_GUI_FILE)
+
+
+    def on_close(self) -> None:
+        """Handles cleanup when the window is closed."""
+        save_listbox_states(CONFIG_LISTBOX_STATE_FILE, self.left_listbox, self.right_listbox, self.result_listbox)
+        self.destroy()  # Close the application
+
 
     def get_currenct_resolution(self) -> Dict[str, int]:
         """Returns the current screen resolution."""

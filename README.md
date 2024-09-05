@@ -31,4 +31,5 @@ Fold-a-saurus/
 
 
 # Requirements
+pip install tkinterdnd2
 pip install moviepy

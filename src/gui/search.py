@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 from typing import List
 from moviepy.editor import VideoFileClip  # Requires moviepy library
+import multiprocessing  # Import multiprocessing for handling process-based searches
 
 def search_files(left_listbox: tk.Listbox, right_listbox: tk.Listbox, result_listbox: tk.Listbox) -> None:
     """Search for files or folders listed in the left listbox within the directories listed in the right listbox."""
@@ -56,6 +57,39 @@ def perform_fast_search(query: str, right_listbox: tk.Listbox, result_listbox: t
         not_found(result_listbox)
 
 
+def search_files_multiprocessing(left_items: List[str], right_dirs: List[str], result_queue: multiprocessing.Queue) -> None:
+    """Search for files or folders in a separate process."""
+    for right_dir in right_dirs:
+        for root, dirs, files in os.walk(right_dir):
+            # Check for folder matches
+            for left_item in left_items:
+                left_item_path = os.path.basename(left_item)
+                if left_item_path in dirs:
+                    match_path = os.path.join(root, left_item_path)
+                    result_queue.put(match_path)
+
+            # Check for file matches
+            for left_item in left_items:
+                left_item_path = os.path.basename(left_item)
+                if left_item_path in files:
+                    match_path = os.path.join(root, left_item_path)
+                    result_queue.put(format_file_info(match_path))
+
+    result_queue.put(None)  # Signal the end of the search
+
+
+def perform_fast_search_multiprocessing(query: str, right_dirs: List[str], result_queue: multiprocessing.Queue) -> None:
+    """Perform fast search in a separate process."""
+    for right_dir in right_dirs:
+        for root, dirs, files in os.walk(right_dir):
+            for name in files + dirs:
+                if query.lower() in name.lower():
+                    match_path = os.path.join(root, name)
+                    result_queue.put(format_file_info(match_path))
+
+    result_queue.put(None)  # Signal the end of the search
+
+
 def format_file_info(filepath: str) -> str:
     """Formats file information including size and, if applicable, video length."""
     file_size = os.path.getsize(filepath)
@@ -67,7 +101,7 @@ def format_file_info(filepath: str) -> str:
             duration = clip.duration
             clip.close()
             duration_str = f" | Duration: {format_duration(duration)}"
-        except Exception as e:
+        except Exception:
             duration_str = " | Duration: Unknown"
     else:
         duration_str = ""

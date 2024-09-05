@@ -1,5 +1,6 @@
 import os
 import json
+import tkinter as tk
 from typing import Dict
 
 
@@ -53,3 +54,39 @@ def load_config(default_file: str, config_file: str) -> Dict[str, Dict[str, int]
     final_config = update_config(default_config, loaded_config)
 
     return final_config
+
+
+def save_listbox_states(config_file: str, left_listbox: tk.Listbox, right_listbox: tk.Listbox, result_listbox: tk.Listbox) -> None:
+        """Saves the current state of all listboxes to a JSON file."""
+        state = {
+            "left_listbox": [left_listbox.get(i) for i in range(left_listbox.size())],
+            "right_listbox": [right_listbox.get(i) for i in range(right_listbox.size())],
+            "result_listbox": [result_listbox.get(i) for i in range(result_listbox.size())]
+        }
+        save_config(state, config_file)
+
+
+def load_listbox_states(config_file: str, left_listbox: tk.Listbox, right_listbox: tk.Listbox, result_listbox: tk.Listbox) -> None:
+    """Loads the state of the listboxes from a JSON file."""
+    try:
+        with open(config_file, 'r') as f:
+            state = json.load(f)
+
+        left_items = state.get("left_listbox", [])
+        right_items = state.get("right_listbox", [])
+        result_items = state.get("result_listbox", [])
+
+        # Populate left listbox
+        for item in left_items:
+            left_listbox.insert(tk.END, item)
+
+        # Populate right listbox
+        for item in right_items:
+            right_listbox.insert(tk.END, item)
+
+        # Populate result listbox
+        for item in result_items:
+            result_listbox.insert(tk.END, item)
+
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error loading listbox states: {e}")

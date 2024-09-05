@@ -156,6 +156,7 @@ cython_debug/
 
 # Project specific ignores
 profile*/
+test_data/
 
 
 # PyCharm
